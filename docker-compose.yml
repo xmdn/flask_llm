@@ -1,0 +1,22 @@
+services:
+  flask_llm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app
+    ports:
+      - "8055:8055"
+    command: ["gunicorn", "--reload", "-w", "1", "-b", "0.0.0.0:8055", "web.app:app"]
+    # command: tail -f /dev/null
+    environment:
+      PYTHONUNBUFFERED: 1
+    env_file:
+      - .env
+  
+  frontend:
+    image: nginx:alpine
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    ports:
+      - "8087:80"

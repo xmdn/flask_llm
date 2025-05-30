@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+<meta charset="UTF-8"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+<title>Funny-GPT</title> 
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script> 
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script> 
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.5/babel.min.js"></script> 
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex h-screen overflow-hidden"> 
+    <div id="root"></div> 
+
+    <script type="text/babel"> 
+    const { useState, useEffect } = React; 
+
+    const Sidebar = ({ history, isOpen, toggleSidebar }) => ( 
+        <div className={`fixed inset-y-0 left-0 w-64 bg-gray-800 text-white transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 ease-in-out md:relative md:translate-x-0`}> 
+            <div className="p-4 flex justify-between items-center"> 
+                <h2 className="text-lg font-bold">Chat History</h2> 
+                <button className="md:hidden text-white" onClick={toggleSidebar}>✕</button> 
+            </div> 
+            <div className="p-4 overflow-y-auto h-full"> 
+                {history.length === 0 ? (<p className="text-gray-400">No messages yet</p>) : (history.map((msg, index) => ( 
+                    <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}> 
+                        <span className={`inline-block p-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-500' : 'bg-gray-600'}`}> 
+                        {msg.content} 
+                        </span> 
+                    </div>
+                ))
+                )}
+            </div>
+        </div>
+    );
+
+    const ChatArea = ({ history, sendMessage, resetChat }) => { 
+    const [message, setMessage] = useState(''); 
+
+    const handleSubmit = (e) => { 
+        e.preventDefault(); 
+        if (message.trim()) { 
+            sendMessage(message); 
+            setMessage(''); 
+        } 
+    }; 
+
+    return ( 
+        <div className="flex flex-col h-full"> 
+            <div className="flex-1 p-4 overflow-y-auto"> 
+            {history.map((msg, index) => ( 
+                <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}> 
+                    <span className={`inline-block p-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}> 
+                    {msg.content} 
+                    </span> 
+                </div> 
+            ))} 
+            </div> 
+            <form onSubmit={handleSubmit} className="p-4 border-t"> 
+                <div className="flex space-x-2"> 
+                    <input
+                        type="text"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Type your message..."
+                    />
+                    <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        Send
+                    </button>
+                    <button
+                        type="button"
+                        onClick={resetChat}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                    >
+                        Reset
+                    </button>
+                </div>
+            </form>
+        </div> 
+        ); 
+    }; 
+
+    const App = () => { 
+        const [history, setHistory] = useState([]); 
+        const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
+        const [error, setError] = useState(null); 
+
+        const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen); 
+
+        const sendMessage = async (message) => { 
+            try {
+                setHistory([...history, { role: 'user', content: message }]);
+                const response = await fetch('http://localhost:8055/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to send message');
+                }
+                setHistory((prev) => [...prev, { role: 'assistant', content: data.reply }]);
+                setError(null);
+            } catch (err) {
+                setError(err.message);
+            }
+        }; 
+
+        const resetChat = async () => { 
+            try { 
+                const response = await fetch('http://localhost:8055/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to reset chat');
+                }
+                setHistory([]);
+                setError(null); 
+            } catch (err) { 
+                setError(err.message); 
+            }
+        }; 
+
+        return (
+            <div className="flex h-full"> 
+                <button 
+                    className="md:hidden fixed top-4 left-4 z-10 p-2 bg-blue-500 text-white rounded-lg" 
+                    onClick={toggleSidebar} 
+                > 
+                    {isSidebarOpen ? 'Close' : 'Menu'} 
+                </button> 
+                <Sidebar history={history} isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+                <div className="flex-1 flex flex-col">
+                    {error && (
+                    <div className="p-4 bg-red-100 text-red-700 border border-red-300">
+                        Error: {error}
+                    </div>
+                    )}
+                    <ChatArea history={history} sendMessage={sendMessage} resetChat={resetChat} />
+                </div>
+            </div>
+        );
+    }; 
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
