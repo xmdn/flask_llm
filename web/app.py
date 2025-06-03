@@ -17,6 +17,7 @@ chat_controller = ChatController(chat_service)
 
 app.route("/chat", methods=["POST"])(chat_controller.chat)
 app.route("/reset", methods=["POST"])(chat_controller.reset)
+app.route('/history', methods=['GET'])(chat_controller.history)
 
 if __name__ == "__main__":
     app.run(debug=True)

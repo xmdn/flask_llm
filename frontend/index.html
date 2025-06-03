@@ -34,7 +34,7 @@
         </div>
     );
 
-    const ChatArea = ({ history, sendMessage, resetChat }) => { 
+    const ChatArea = ({ latestMessages, sendMessage, resetChat }) => {
     const [message, setMessage] = useState(''); 
 
     const handleSubmit = (e) => { 
@@ -48,7 +48,7 @@
     return ( 
         <div className="flex flex-col h-full"> 
             <div className="flex-1 p-4 overflow-y-auto"> 
-            {history.map((msg, index) => ( 
+            {latestMessages.map((msg, index) => ( 
                 <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}> 
                     <span className={`inline-block p-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}> 
                     {msg.content} 
@@ -86,7 +86,23 @@
         const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
         const [error, setError] = useState(null); 
 
-        const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen); 
+        const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+        useEffect(() => {
+            const fetchHistory = async () => {
+                try {
+                    const response = await fetch('http://localhost:8055/history');
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to fetch history');
+                    }
+                    setHistory(data.history || []);
+                } catch (err) {
+                    setError(err.message);
+                }
+            };
+            fetchHistory();
+        }, []);
 
         const sendMessage = async (message) => { 
             try {
@@ -139,7 +155,7 @@
                         Error: {error}
                     </div>
                     )}
-                    <ChatArea history={history} sendMessage={sendMessage} resetChat={resetChat} />
+                    <ChatArea latestMessages={history.slice(-2)} sendMessage={sendMessage} resetChat={resetChat} />
                 </div>
             </div>
         );

@@ -16,7 +16,10 @@ class ChatController:
         if error: 
             return jsonify({"error": error}), 500 
 
-        return jsonify({"reply": reply}) 
+        return jsonify({"reply": reply})
+    
+    def history(self):
+        return jsonify({"history": self.chat_service.chat_history})
 
     def reset(self): 
         self.chat_service.reset_chat() 
